@@ -42,7 +42,8 @@ const plans = [
   },
 ];
 
-//API Controller for getting all plans
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
 export const getPlans = async (req, res) => {
   try {
     res.json({ success: true, plans });
@@ -51,22 +52,17 @@ export const getPlans = async (req, res) => {
   }
 };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-//API controller for purchasing a plan
 export const purchasePlans = async (req, res) => {
   try {
     const { planId } = req.body;
     const userId = req.user._id;
     const plan = plans.find((plan) => plan._id === planId);
 
-    if (!plan) {
-      return res.json({ success: false, message: 'Invalid plan' });
-    }
+    if (!plan) return res.json({ success: false, message: 'Invalid plan' });
 
     // Create new transaction
-
     const transaction = await Transaction.create({
-      userId: userId,
+      userId,
       planId: plan._id,
       amount: plan.price,
       credits: plan.credits,
@@ -81,9 +77,7 @@ export const purchasePlans = async (req, res) => {
           price_data: {
             currency: 'usd',
             unit_amount: plan.price * 100,
-            product_data: {
-              name: plan.name,
-            },
+            product_data: { name: plan.name },
           },
           quantity: 1,
         },
@@ -92,7 +86,6 @@ export const purchasePlans = async (req, res) => {
       success_url: `${origin}/loading`,
       cancel_url: `${origin}`,
       metadata: { transaction: transaction._id.toString(), appId: 'chatbot' },
-      //   expires_at: Math.floor(Date.now() / 1000) + 30 * 60, //expires in 30 minutes
     });
 
     res.json({ success: true, url: session.url });
