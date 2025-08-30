@@ -1,69 +1,65 @@
 import Stripe from 'stripe';
 import Transaction from '../models/transaction.js';
 import User from '../models/User.js';
+import { response } from 'express';
 
-// Stripe client: use Secret Key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-export const stripeWebhooks = async (req, res) => {
-  const sig = req.headers['stripe-signature'];
+export const stripeWebhooks = async (request, response) => {
+  const stripe = new Stripe(process.env.STRIPE_WEBHOOK_SECRET);
+  const sig = request.headers['stripe-signature'];
 
   let event;
+
   try {
-    // verify webhook signature using webhook secret
     event = stripe.webhooks.constructEvent(
-      req.body,
+      request.body,
       sig,
-      process.env.STRIPE_WEBHOOKS_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET
     );
-  } catch (err) {
-    console.error('⚠️ Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+  } catch (error) {
+    return response.status(400).send(`Webhook Error: ${error.message}`);
   }
 
   try {
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-        const { transaction, appId } = session.metadata;
-
-        if (!transaction) {
-          return res.status(400).send('Transaction ID missing in metadata');
-        }
+      case 'payment_intent.succeeded': {
+        const paymentIntend = event.data.object;
+        const sessionList = await stripe.checkout.sessions.list({
+          payment_intent: paymentIntend.id,
+        });
+        const session = sessionList.data[0];
+        const { transactionId, appId } = session.metadata;
 
         if (appId === 'chatbot') {
-          const txn = await Transaction.findOne({
-            _id: transaction,
+          const transaction = await Transaction.findOne({
+            _id: transactionId,
             isPaid: false,
           });
 
-          if (!txn) break; // already paid or not found
-
-          // ✅ Update user credits
+          //update credit in user account
           await User.updateOne(
-            { _id: txn.userId },
-            { $inc: { credits: txn.credits } }
+            { _id: transaction.userId },
+            { $inc: { credits: transaction.credits } }
           );
 
-          // ✅ Mark transaction as paid
-          txn.isPaid = true;
-          await txn.save();
-
-          console.log(`✅ Transaction completed for user: ${txn.userId}`);
+          //Update credit payment status
+          transaction.isPaid = true;
+          await transaction.save();
         } else {
-          console.log('⚠️ Ignored webhook: invalid appId');
+          return response.json({
+            received: true,
+            message: 'Ignored event: Invalid app',
+          });
         }
         break;
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log('unhandled event type:', event.type);
         break;
     }
-
-    res.json({ received: true });
+    response.json({ received: true });
   } catch (error) {
-    console.error('❌ Webhook processing error:', error);
-    res.status(500).send('Internal Server Error');
+    console.log('Webhook processing error:', error);
+    response.status(500).send('Internal server error');
   }
 };
