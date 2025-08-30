@@ -2,34 +2,33 @@ import Stripe from 'stripe';
 import Transaction from '../models/transaction.js';
 import User from '../models/User.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // ✅ yaha SECRET KEY use hoga
+// Stripe client: use Secret Key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export const stripeWebhooks = async (request, response) => {
-  const sig = request.headers['stripe-signature'];
+export const stripeWebhooks = async (req, res) => {
+  const sig = req.headers['stripe-signature'];
 
   let event;
   try {
+    // verify webhook signature using webhook secret
     event = stripe.webhooks.constructEvent(
-      request.body,
+      req.body,
       sig,
-      process.env.STRIPE_WEBHOOKS_SECRET // ✅ yaha WEBHOOKS_SECRET use hoga
+      process.env.STRIPE_WEBHOOKS_SECRET
     );
-  } catch (error) {
-    console.error('Webhook signature verification failed:', error.message);
-    return response.status(400).send(`Webhook Error: ${error.message}`);
+  } catch (err) {
+    console.error('⚠️ Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
-        // ✅ ye sahi event hai
         const session = event.data.object;
-
         const { transaction, appId } = session.metadata;
+
         if (!transaction) {
-          return response
-            .status(400)
-            .send('Transaction ID missing in metadata');
+          return res.status(400).send('Transaction ID missing in metadata');
         }
 
         if (appId === 'chatbot') {
@@ -37,28 +36,34 @@ export const stripeWebhooks = async (request, response) => {
             _id: transaction,
             isPaid: false,
           });
-          if (!txn) break;
 
-          // Update user credits
+          if (!txn) break; // already paid or not found
+
+          // ✅ Update user credits
           await User.updateOne(
             { _id: txn.userId },
             { $inc: { credits: txn.credits } }
           );
 
+          // ✅ Mark transaction as paid
           txn.isPaid = true;
           await txn.save();
+
+          console.log(`✅ Transaction completed for user: ${txn.userId}`);
+        } else {
+          console.log('⚠️ Ignored webhook: invalid appId');
         }
         break;
       }
 
       default:
-        console.log('Unhandled event type:', event.type);
+        console.log(`Unhandled event type: ${event.type}`);
         break;
     }
 
-    response.json({ received: true });
+    res.json({ received: true });
   } catch (error) {
-    console.error('Webhook processing error:', error);
-    response.status(500).send('Internal Server Error');
+    console.error('❌ Webhook processing error:', error);
+    res.status(500).send('Internal Server Error');
   }
 };
