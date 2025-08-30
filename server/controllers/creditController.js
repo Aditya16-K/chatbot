@@ -86,6 +86,7 @@ export const purchasePlans = async (req, res) => {
       success_url: `${origin}/loading`,
       cancel_url: `${origin}`,
       metadata: { transaction: transaction._id.toString(), appId: 'chatbot' },
+      expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
     });
 
     res.json({ success: true, url: session.url });

@@ -2,67 +2,51 @@ import Stripe from 'stripe';
 import Transaction from '../models/transaction.js';
 import User from '../models/User.js';
 
-export const stripeWebhooks = async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  const sig = req.headers['stripe-signature'];
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // ✅ yaha SECRET KEY use hoga
+
+export const stripeWebhooks = async (request, response) => {
+  const sig = request.headers['stripe-signature'];
 
   let event;
   try {
     event = stripe.webhooks.constructEvent(
-      req.body,
+      request.body,
       sig,
-      process.env.STRIPE_WEBHOOKS_SECRET
+      process.env.STRIPE_WEBHOOKS_SECRET // ✅ yaha WEBHOOKS_SECRET use hoga
     );
   } catch (error) {
     console.error('Webhook signature verification failed:', error.message);
-    return res.status(400).send(`Webhook Error: ${error.message}`);
+    return response.status(400).send(`Webhook Error: ${error.message}`);
   }
 
   try {
     switch (event.type) {
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object;
+      case 'checkout.session.completed': {
+        // ✅ ye sahi event hai
+        const session = event.data.object;
 
-        // Fetch sessions for this paymentIntent
-        const sessionList = await stripe.checkout.sessions.list({
-          payment_intent: paymentIntent.id,
-        });
-        const session = sessionList.data[0];
-        if (!session) return res.status(404).send('Session not found');
-
-        // Fix: metadata key match
-        const { transaction: transactionId, appId } = session.metadata;
-
-        if (!transactionId)
-          return res.status(400).send('Transaction ID missing in metadata');
+        const { transaction, appId } = session.metadata;
+        if (!transaction) {
+          return response
+            .status(400)
+            .send('Transaction ID missing in metadata');
+        }
 
         if (appId === 'chatbot') {
-          const transaction = await Transaction.findOne({
-            _id: transactionId,
+          const txn = await Transaction.findOne({
+            _id: transaction,
             isPaid: false,
           });
-
-          if (!transaction) {
-            console.log(
-              'Transaction not found or already paid:',
-              transactionId
-            );
-            return res.status(404).send('Transaction not found');
-          }
+          if (!txn) break;
 
           // Update user credits
           await User.updateOne(
-            { _id: transaction.userId },
-            { $inc: { credits: transaction.credits } }
+            { _id: txn.userId },
+            { $inc: { credits: txn.credits } }
           );
 
-          // Mark transaction as paid
-          transaction.isPaid = true;
-          await transaction.save();
-
-          console.log('Transaction completed:', transactionId);
-        } else {
-          console.log('Ignored event: Invalid appId');
+          txn.isPaid = true;
+          await txn.save();
         }
         break;
       }
@@ -72,9 +56,9 @@ export const stripeWebhooks = async (req, res) => {
         break;
     }
 
-    res.json({ received: true });
+    response.json({ received: true });
   } catch (error) {
     console.error('Webhook processing error:', error);
-    res.status(500).send('Internal Server Error');
+    response.status(500).send('Internal Server Error');
   }
 };
