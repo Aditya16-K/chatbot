@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { assets } from '../assets/assets';
-import moment from 'moment';
 import toast from 'react-hot-toast';
-import Loading from '../pages/Loading';
 
 const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
   const {
@@ -150,24 +148,6 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
           />
           <div className="flex flex-col text-sm">
             <p>Community Images</p>
-          </div>
-        </div>
-
-        {/* Credit purchase option */}
-
-        <div
-          onClick={() => {
-            navigate('/credits');
-            setIsMenuOpen(false);
-          }}
-          className="flex items-center gap-2 p-3 mt-4 border border-gray-300 dark:border-white/15 rounded-md cursor-pointer hover:scale-103 transition-all"
-        >
-          <img src={assets.diamond_icon} alt="" className="w-4.5 dark:invert" />
-          <div className="flex flex-col text-sm">
-            <p>Credits : {user?.credits}</p>
-            <p className="text-xs text-gray-400">
-              Purchase credits to use Chatbot{' '}
-            </p>
           </div>
         </div>
 

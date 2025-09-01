@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import ChatBox from './components/ChatBox';
-import Credit from './pages/Credit';
 import Community from './pages/Community';
 import { assets } from './assets/assets';
 import './assets/prism.css';
@@ -34,7 +33,6 @@ const App = () => {
             <Sidebar isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
             <Routes>
               <Route path="/" element={<ChatBox />} />
-              <Route path="/credits" element={<Credit />} />
               <Route path="/community" element={<Community />} />
             </Routes>
           </div>

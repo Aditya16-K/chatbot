@@ -5,22 +5,12 @@ import connectDB from './configs/db.js';
 import userRouter from './routes/userRoutes.js';
 import chatRouter from './routes/chatRoutes.js';
 import messageRouter from './routes/messageRoutes.js';
-import creditRouter from './routes/creditRoutes.js';
-import { stripeWebhooks } from './controllers/webhooks.js';
 
 const app = express();
 
 // Connect MongoDB
 await connectDB();
 
-// ⚡ Stripe webhook route → must be raw before json middleware
-app.post(
-  '/api/stripe',
-  express.raw({ type: 'application/json' }),
-  stripeWebhooks
-);
-
-// Global middleware (after webhook)
 app.use(cors());
 app.use(express.json());
 
@@ -29,7 +19,6 @@ app.get('/', (req, res) => res.send('server is live!'));
 app.use('/api/user', userRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/message', messageRouter);
-app.use('/api/credit', creditRouter);
 
 const PORT = process.env.PORT || 3000;
 

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { dummyPublishedImages } from '../assets/assets';
 import Loading from './Loading';
 import { useAppContext } from '../context/AppContext';
 import toast from 'react-hot-toast';
@@ -31,27 +30,46 @@ const Community = () => {
 
   return (
     <div className="p-6 pt-12 xl:px-12 2xl:px-20 w-full mx-auto h-full overflow-y-scroll scrollbar-hidden">
-      <h2 className="text-xl font-semibold mb-6 text-gray-600 dark:text--purple-100">
+      <h2 className="text-2xl font-semibold mb-6 text-gray-700 dark:text-purple-100">
         Community Images
       </h2>
+
       {images.length > 0 ? (
-        <div className="flex flex-wrap max-sm:justify-center gap-5">
+        <div className="flex flex-wrap justify-center gap-5">
           {images.map((item, index) => (
-            <a
+            <div
               key={index}
-              target="_blank"
-              href={item.imageUrl}
-              className="relative group block rounded-lg overflow-hidden border border-gray-200 dark:border-purple-700 shadow-sm hover:shadow-md transition-shadow duration-300"
+              className="relative group rounded-lg overflow-hidden border border-gray-300 shadow-md hover:shadow-lg transition-shadow duration-300 w-64"
             >
-              <img
-                src={item.imageUrl}
-                alt=""
-                className="w-full h-40 md:h-50 2xl:h-62 object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out"
-              />
+              {/* Click on image opens in new tab */}
+              <a href={item.imageUrl} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={item.imageUrl}
+                  alt={`Community Image ${index + 1}`}
+                  className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out"
+                />
+              </a>
+
+              {/* Created by label */}
               <p className="absolute bottom-0 right-0 text-xs bg-black/50 backdrop-blur text-white px-4 py-1 rounded-tl-xl opacity-0 group-hover:opacity-100 transition duration-300">
                 Created by {item.userName}
               </p>
-            </a>
+
+              {/* Download button */}
+              <button
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = item.imageUrl;
+                  link.download = `chatbot_image_${index + 1}.png`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="absolute top-2 right-2 bg-purple-600 text-white px-3 py-1 text-xs rounded opacity-0 group-hover:opacity-100 hover:bg-purple-700 transition duration-300"
+              >
+                Download
+              </button>
+            </div>
           ))}
         </div>
       ) : (
