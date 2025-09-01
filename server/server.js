@@ -10,21 +10,21 @@ import { stripeWebhooks } from './controllers/webhooks.js';
 
 const app = express();
 
-// ✅ Connect MongoDB
+// Connect MongoDB
 await connectDB();
 
-// ⚡ Stripe webhook route → raw body chahiye verify ke liye
+// ⚡ Stripe webhook route → must be raw before json middleware
 app.post(
   '/api/stripe',
   express.raw({ type: 'application/json' }),
   stripeWebhooks
 );
 
-// ✅ Global Middleware (after webhook route)
+// Global middleware (after webhook)
 app.use(cors());
 app.use(express.json());
 
-// ✅ Routes
+// Routes
 app.get('/', (req, res) => res.send('server is live!'));
 app.use('/api/user', userRouter);
 app.use('/api/chat', chatRouter);
