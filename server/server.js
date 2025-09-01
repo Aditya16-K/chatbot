@@ -10,16 +10,17 @@ import { stripeWebhooks } from './controllers/webhooks.js';
 
 const app = express();
 
+// ✅ Connect MongoDB
 await connectDB();
 
-// ✅ Stripe webhook
+// ⚡ Stripe webhook route → raw body chahiye verify ke liye
 app.post(
   '/api/stripe',
   express.raw({ type: 'application/json' }),
   stripeWebhooks
 );
 
-//  middleware
+// ✅ Global Middleware (after webhook route)
 app.use(cors());
 app.use(express.json());
 
@@ -31,6 +32,7 @@ app.use('/api/message', messageRouter);
 app.use('/api/credit', creditRouter);
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log(`server is running on port: ${PORT}`);
 });

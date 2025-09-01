@@ -2,14 +2,14 @@ import Stripe from 'stripe';
 import Transaction from '../models/transaction.js';
 import User from '../models/User.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // ✅ Correct key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const stripeWebhooks = async (request, response) => {
   const sig = request.headers['stripe-signature'];
 
   let event;
   try {
-    // ✅ Verify webhook with webhook secret
+    // ✅ Verify webhook signature
     event = stripe.webhooks.constructEvent(
       request.body,
       sig,
@@ -24,7 +24,7 @@ export const stripeWebhooks = async (request, response) => {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        const { transaction: transactionId, appId } = session.metadata;
+        const { transactionId, appId } = session.metadata; // ✅ key matches purchase
 
         if (appId === 'chatbot') {
           const transaction = await Transaction.findOne({
@@ -33,7 +33,7 @@ export const stripeWebhooks = async (request, response) => {
           });
 
           if (transaction) {
-            // ✅ Update user's credits
+            // ✅ Increment user's credits
             await User.updateOne(
               { _id: transaction.userId },
               { $inc: { credits: transaction.credits } }
@@ -44,6 +44,8 @@ export const stripeWebhooks = async (request, response) => {
             await transaction.save();
 
             console.log('✅ Credits updated for user:', transaction.userId);
+          } else {
+            console.log('Transaction already paid or not found');
           }
         } else {
           console.log('Ignored event: Invalid app');

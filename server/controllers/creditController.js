@@ -42,7 +42,6 @@ const plans = [
   },
 ];
 
-//API Controller for getting all plans
 export const getPlans = async (req, res) => {
   try {
     res.json({ success: true, plans });
@@ -53,7 +52,6 @@ export const getPlans = async (req, res) => {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-//API controller for purchasing a plans
 export const purchasePlans = async (req, res) => {
   try {
     const { planId } = req.body;
@@ -87,7 +85,7 @@ export const purchasePlans = async (req, res) => {
       mode: 'payment',
       success_url: `${origin}/loading`,
       cancel_url: `${origin}`,
-      metadata: { transaction: transaction._id.toString(), appId: 'chatbot' },
+      metadata: { transactionId: transaction._id.toString(), appId: 'chatbot' }, // ✅ key fixed
       expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
     });
 
