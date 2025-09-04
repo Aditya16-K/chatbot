@@ -15,14 +15,15 @@ const App = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { pathname } = useLocation();
 
+  // Show loading page if still fetching user
   if (pathname === '/loading' || loadingUser) return <Loading />;
 
   return (
     <>
       <Toaster />
 
-      {/* Fixed Menu Icon */}
-      {!isMenuOpen && (
+      {/* Show Menu Icon only if user is logged in */}
+      {user && !isMenuOpen && (
         <img
           src={assets.menu_icon}
           className="fixed top-3 left-3 w-8 h-8 cursor-pointer md:hidden not-dark:invert z-50"
