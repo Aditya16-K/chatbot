@@ -16,25 +16,34 @@ const App = () => {
   const { pathname } = useLocation();
 
   if (pathname === '/loading' || loadingUser) return <Loading />;
+
   return (
     <>
       <Toaster />
+
+      {/* Fixed Menu Icon */}
       {!isMenuOpen && (
         <img
           src={assets.menu_icon}
-          className="absolute top-3 left-3 w-8 h-8 cursor-pointer md:hidden not-dark:invert"
+          className="fixed top-3 left-3 w-8 h-8 cursor-pointer md:hidden not-dark:invert z-50"
           onClick={() => setIsMenuOpen(true)}
+          alt="Menu"
         />
       )}
 
       {user ? (
         <div className="dark:bg-gradient-to-b from-[#242124] to-[#000000] dark:text-white">
           <div className="flex h-screen w-screen">
+            {/* Sidebar */}
             <Sidebar isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
-            <Routes>
-              <Route path="/" element={<ChatBox />} />
-              <Route path="/community" element={<Community />} />
-            </Routes>
+
+            {/* Main Chat / Pages */}
+            <div className="flex-1 overflow-y-auto">
+              <Routes>
+                <Route path="/" element={<ChatBox />} />
+                <Route path="/community" element={<Community />} />
+              </Routes>
+            </div>
           </div>
         </div>
       ) : (
